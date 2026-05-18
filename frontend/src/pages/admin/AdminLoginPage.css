@@ -1,0 +1,12 @@
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-neutral-900);
+  padding: 24px;
+}
+
+.admin-login-card {
+  max-width: 400px;
+}

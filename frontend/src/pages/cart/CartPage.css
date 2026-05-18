@@ -1,0 +1,108 @@
+.cart-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
+  align-items: start;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 64px 1fr auto auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.cart-item__thumb {
+  width: 64px;
+  height: 64px;
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-neutral-400);
+}
+
+.cart-item__name {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  text-decoration: none;
+}
+
+.cart-item__price {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+}
+
+.cart-item__subtotal {
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+  margin: 0;
+}
+
+.cart-item__remove {
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cart-summary {
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  position: sticky;
+  top: 84px;
+}
+
+.cart-summary h2 {
+  margin-bottom: 20px;
+}
+
+.cart-summary__row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: var(--color-neutral-600);
+}
+
+.cart-summary__total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-neutral-200);
+  margin-bottom: 20px;
+}
+
+.cart-summary a {
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-item {
+    grid-template-columns: 56px 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .cart-item__subtotal {
+    grid-column: 2;
+    text-align: left;
+  }
+}

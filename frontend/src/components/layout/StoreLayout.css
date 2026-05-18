@@ -1,0 +1,19 @@
+.store-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-layout__main {
+  flex: 1;
+  max-width: var(--max-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+@media (max-width: 640px) {
+  .store-layout__main {
+    padding: 24px 16px 40px;
+  }
+}
