@@ -571,21 +571,584 @@ Authorization: Bearer <token>
 
 ---
 
-## 6. 管理端 API（預留，第二階段）
+## 6. 管理端 API 詳細規格
 
-前端管理後台尚未實作，但依計畫書預計需要，供資料庫組員規劃時參考：
+管理端所有 API 建議加上 `/admin` 前綴以與會員端進行路由與權限隔離。請求時均需在 Header 帶上管理端憑證：
+```
+Authorization: Bearer <admin_token>
+```
 
-| 方法 | 路徑 | 說明 |
+### 6.1 管理員登入
+
+```
+POST /admin/auth/login
+```
+
+**Request Body**
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "admin1234"
+}
+```
+
+**Response `200`**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "admin": {
+    "id": 1,
+    "name": "系統管理員",
+    "email": "admin@example.com"
+  }
+}
+```
+
+**錯誤 `401`**：`message`: `管理員帳號或密碼錯誤`
+
+---
+
+### 6.2 儀表板數據
+
+```
+GET /admin/dashboard/stats
+```
+
+**Response `200`**
+
+```json
+{
+  "today_order_count": 3,
+  "processing_order_count": 5,
+  "low_stock_count": 2,
+  "monthly_revenue": 45000,
+  "recent_orders": [
+    {
+      "id": 15,
+      "member_id": 1,
+      "member_name": "王小明",
+      "member_email": "user@example.com",
+      "total_amount": 1097,
+      "payment_status": "unpaid",
+      "order_status": "processing",
+      "created_at": "2026-05-17T14:30:00.000Z"
+    }
+  ],
+  "low_stock_products": [
+    {
+      "id": 1,
+      "category_id": 1,
+      "category_name": "服飾",
+      "name": "純棉素色 T 恤",
+      "price": 399,
+      "stock": 2,
+      "description": "100% 純棉，透氣舒適…",
+      "is_active": true
+    }
+  ]
+}
+```
+
+---
+
+### 6.3 分類管理 API
+
+#### 6.3.1 取得分類列表（含商品數量）
+
+```
+GET /admin/categories
+```
+
+**Response `200`**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "服飾",
+    "description": "日常穿搭與配件",
+    "product_count": 12
+  },
+  {
+    "id": 2,
+    "name": "3C 配件",
+    "description": "手機、電腦周邊",
+    "product_count": 5
+  }
+]
+```
+
+#### 6.3.2 新增分類
+
+```
+POST /admin/categories
+```
+
+**Request Body**
+
+```json
+{
+  "name": "鞋包配件",
+  "description": "流行鞋款與雙肩包、側背包"
+}
+```
+
+**Response `201`**
+
+```json
+{
+  "id": 3,
+  "name": "鞋包配件",
+  "description": "流行鞋款與雙肩包、側背包"
+}
+```
+
+**錯誤範例 `400`**
+
+```json
+{
+  "error": {
+    "code": "CATEGORY_EXISTS",
+    "message": "分類名稱已存在"
+  }
+}
+```
+
+#### 6.3.3 編輯分類
+
+```
+PUT /admin/categories/:id
+```
+
+**Request Body**
+
+```json
+{
+  "name": "潮流鞋包",
+  "description": "更新後的描述內容"
+}
+```
+
+**Response `200`**
+
+```json
+{
+  "id": 3,
+  "name": "潮流鞋包",
+  "description": "更新後的描述內容"
+}
+```
+
+#### 6.3.4 刪除分類
+
+```
+DELETE /admin/categories/:id
+```
+
+**Response `204`**：無內容（No Content）
+
+**錯誤範例 `400`**：若分類下有關聯商品，拒絕刪除。
+
+```json
+{
+  "error": {
+    "code": "CATEGORY_HAS_PRODUCTS",
+    "message": "此分類下仍有商品，無法刪除"
+  }
+}
+```
+
+---
+
+### 6.4 商品管理 API
+
+#### 6.4.1 取得商品列表（管理端）
+
+```
+GET /admin/products
+```
+
+**Query Parameters**
+
+| 參數 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `category_id` | number | 否 | 篩選分類 |
+| `search` | string | 否 | 商品名稱模糊搜尋 |
+| `activeFilter` | string | 否 | `active` (僅上架) \| `inactive` (僅下架)；未傳則顯示全部 |
+
+**Response `200`**
+
+```json
+[
+  {
+    "id": 2,
+    "category_id": 1,
+    "category_name": "服飾",
+    "name": "重磅修身帽 T",
+    "price": 890,
+    "stock": 15,
+    "description": "保暖舒適…",
+    "is_active": false,
+    "image": null
+  },
+  {
+    "id": 1,
+    "category_id": 1,
+    "category_name": "服飾",
+    "name": "純棉素色 T 恤",
+    "price": 399,
+    "stock": 28,
+    "description": "100% 純棉，透氣舒適…",
+    "is_active": true,
+    "image": null
+  }
+]
+```
+
+#### 6.4.2 取得商品詳情（管理端）
+
+```
+GET /admin/products/:id
+```
+
+**Response `200`**：回傳單筆商品詳細結構（同 6.4.1 單筆物件）。
+
+**錯誤 `404`**：`message`: `找不到商品`
+
+#### 6.4.3 新增商品（含初始進貨 Log）
+
+```
+POST /admin/products
+```
+
+**Request Body**
+
+```json
+{
+  "category_id": 1,
+  "name": "工裝多口袋寬褲",
+  "price": 790,
+  "stock": 20,
+  "description": "耐磨布料，多口袋設計",
+  "is_active": true
+}
+```
+
+**後端必須在同一 Transaction 內完成**
+
+1. 檢查並驗證 `category_id` 是否有效。
+2. 寫入 `products` 資料表。
+3. 若 `stock > 0`，必須同時寫入 `inventory_logs`（`change_type = 'purchase'`，`change_quantity = stock`）。
+
+**Response `201`**：回傳新增的完整商品物件。
+
+#### 6.4.4 編輯商品
+
+```
+PUT /admin/products/:id
+```
+
+**Request Body**
+
+```json
+{
+  "category_id": 1,
+  "name": "工裝多口袋寬褲-升級版",
+  "price": 850,
+  "stock": 18,
+  "description": "耐磨防潑水布料",
+  "is_active": true
+}
+```
+
+**Response `200`**：回傳更新後的完整商品物件。
+
+#### 6.4.5 切換商品上/下架狀態
+
+```
+PATCH /admin/products/:id/toggle
+```
+
+**Response `200`**：回傳更新狀態後的完整商品物件（`is_active` 值會反轉）。
+
+#### 6.4.6 刪除商品
+
+```
+DELETE /admin/products/:id
+```
+
+**Response `204`**：無內容（No Content）
+
+**錯誤範例 `400`**：若商品已產生過訂單明細，拒絕刪除（防關聯資料遺失）。
+
+```json
+{
+  "error": {
+    "code": "PRODUCT_HAS_ORDERS",
+    "message": "此商品已有訂單紀錄，無法刪除"
+  }
+}
+```
+
+---
+
+### 6.5 訂單管理 API
+
+#### 6.5.1 取得訂單列表（管理端）
+
+```
+GET /admin/orders
+```
+
+**Query Parameters**
+
+| 參數 | 類型 | 說明 |
 |------|------|------|
-| CRUD | `/admin/products` | 商品維護、上下架 |
-| CRUD | `/admin/categories` | 分類維護 |
-| GET/PATCH | `/admin/orders` | 訂單列表、更新 `order_status` |
-| POST | `/admin/inventory/purchase` | 進貨（增加庫存 + log） |
-| GET | `/admin/inventory/logs` | 庫存異動紀錄 |
-| GET | `/admin/reports/sales-by-category` | 分類銷售統計 |
-| GET | `/admin/reports/top-products` | 熱銷排行 |
+| `search` | string | 模糊搜尋訂單 ID、會員姓名、會員 Email |
+| `paymentStatus` | string | 篩選付款狀態 (`unpaid` \| `paid` \| `failed`) |
+| `orderStatus` | string | 篩選訂單狀態 (`processing` \| `shipped` \| `completed`) |
 
-管理端建議獨立 `admin` 角色或 API Key，與會員 Token 分離。
+**Response `200`**
+
+```json
+[
+  {
+    "id": 15,
+    "member_id": 1,
+    "member_name": "王小明",
+    "member_email": "user@example.com",
+    "total_amount": 1097,
+    "payment_status": "unpaid",
+    "order_status": "processing",
+    "shipping_phone": "0912345678",
+    "shipping_address": "高雄市燕巢區深中路 58 號",
+    "created_at": "2026-05-17T14:30:00.000Z"
+  }
+]
+```
+
+#### 6.5.2 取得訂單詳情（管理端）
+
+```
+GET /admin/orders/:id
+```
+
+**Response `200`**
+
+```json
+{
+  "id": 15,
+  "member_id": 1,
+  "member_name": "王小明",
+  "member_email": "user@example.com",
+  "total_amount": 1097,
+  "payment_status": "unpaid",
+  "order_status": "processing",
+  "shipping_phone": "0912345678",
+  "shipping_address": "高雄市燕巢區深中路 58 號",
+  "created_at": "2026-05-17T14:30:00.000Z",
+  "member": {
+    "id": 1,
+    "name": "王小明",
+    "email": "user@example.com",
+    "phone": "0912345678",
+    "address": "高雄市燕巢區深中路 58 號"
+  },
+  "items": [
+    {
+      "product_id": 1,
+      "product_name": "純棉素色 T 恤",
+      "quantity": 2,
+      "unit_price": 399,
+      "subtotal": 798
+    }
+  ]
+}
+```
+
+#### 6.5.3 更新訂單狀態
+
+```
+PATCH /admin/orders/:id
+```
+
+**Request Body**
+
+```json
+{
+  "payment_status": "paid",
+  "order_status": "shipped"
+}
+```
+
+* 欄位皆為選填。若僅需變更其中一項狀態，只傳送該欄位即可。
+
+**Response `200`**：更新後的訂單詳情物件（同 6.5.2 結構）。
+
+---
+
+### 6.6 庫存管理 API
+
+#### 6.6.1 取得庫存總覽（管理端）
+
+```
+GET /admin/inventory
+```
+
+**Response `200`**
+
+```json
+[
+  {
+    "id": 1,
+    "category_id": 1,
+    "category_name": "服飾",
+    "name": "純棉素色 T 恤",
+    "price": 399,
+    "stock": 28,
+    "is_active": true,
+    "image": null,
+    "last_change_at": "2026-05-17T14:30:00.000Z"
+  }
+]
+```
+
+* `last_change_at` 表示該商品最近一次在 `inventory_logs` 產生的時間（可經由 `LEFT JOIN` 的 `MAX(created_at)` 取得）。
+
+#### 6.6.2 取得庫存異動紀錄
+
+```
+GET /admin/inventory/logs
+```
+
+**Query Parameters**
+
+| 參數 | 類型 | 說明 |
+|------|------|------|
+| `productId` | number | 篩選特定商品的異動紀錄 |
+| `changeType` | string | 篩選變動類型 (`purchase`進貨 \| `order_deduct`扣庫存 \| `cancel_return`退回) |
+
+**Response `200`**
+
+```json
+[
+  {
+    "id": 4,
+    "product_id": 1,
+    "product_name": "純棉素色 T 恤",
+    "category_name": "服飾",
+    "change_quantity": -2,
+    "change_type": "order_deduct",
+    "created_at": "2026-05-17T14:30:00.000Z"
+  },
+  {
+    "id": 1,
+    "product_id": 1,
+    "product_name": "純棉素色 T 恤",
+    "category_name": "服飾",
+    "change_quantity": 30,
+    "change_type": "purchase",
+    "created_at": "2026-05-17T06:00:00.000Z"
+  }
+]
+```
+
+#### 6.6.3 進貨（增加庫存）
+
+```
+POST /admin/inventory/purchase
+```
+
+**Request Body**
+
+```json
+{
+  "product_id": 1,
+  "quantity": 50
+}
+```
+
+**後端必須在同一 Transaction 內完成**
+
+1. 鎖定並驗證商品存在。
+2. 檢查 `quantity` 是否為大於 0 的正整數。
+3. 增加該商品的庫存：`products.stock = products.stock + quantity`。
+4. 寫入 `inventory_logs`（`change_type = 'purchase'`，`change_quantity = quantity`）。
+
+**Response `200`**：回傳進貨更新後之商品詳細物件。
+
+**錯誤範例 `400`**
+
+```json
+{
+  "error": {
+    "code": "INVALID_QUANTITY",
+    "message": "進貨數量必須大於 0"
+  }
+}
+```
+
+---
+
+### 6.7 報表分析 API
+
+#### 6.7.1 分類銷售總額統計
+
+```
+GET /admin/reports/sales-by-category
+```
+
+* 僅加總**已付款 (`payment_status = 'paid'`)** 訂單中各分類商品的累計銷售總額。
+
+**Response `200`**
+
+```json
+[
+  {
+    "category_id": 1,
+    "category_name": "服飾",
+    "total": 5980
+  },
+  {
+    "category_id": 2,
+    "category_name": "3C 配件",
+    "total": 1240
+  }
+]
+```
+
+* 資料集依銷售額 `total` 降序排列。
+
+#### 6.7.2 熱銷商品排行
+
+```
+GET /admin/reports/top-products
+```
+
+* 僅加總**已付款 (`payment_status = 'paid'`)** 訂單中商品的銷售數量與營收。
+
+**Query Parameters**
+
+| 參數 | 類型 | 說明 |
+|------|------|------|
+| `limit` | number | 限定回傳筆數，預設為 10 |
+
+**Response `200`**
+
+```json
+[
+  {
+    "product_id": 1,
+    "product_name": "純棉素色 T 恤",
+    "quantity": 15,
+    "revenue": 5985
+  }
+]
+```
+
+* 資料集依銷售營收 `revenue` 降序排列。
 
 ---
 
