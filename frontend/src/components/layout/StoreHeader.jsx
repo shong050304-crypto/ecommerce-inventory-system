@@ -36,6 +36,9 @@ export default function StoreHeader() {
           )}
         </nav>
         <div className="store-header__actions">
+          <Link to="/admin" className="store-header__link-admin" target="_blank" rel="noopener noreferrer">
+            ⚙️ 管理後台
+          </Link>
           {isAuthenticated ? (
             <div className="store-header__user">
               <span className="store-header__name">{user.name}</span>

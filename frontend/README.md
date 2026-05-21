@@ -12,12 +12,25 @@ npm run dev
 
 瀏覽器開啟 http://localhost:5173
 
+### 進入管理後台
+
+1. 確保前端開發伺服器已啟動（`npm run dev`）。
+2. 在瀏覽器中輸入：**http://localhost:5173/admin**（若未登入，會自動導向至管理員登入頁面 `/admin/login`）。
+3. 使用管理者示範帳號進行登入：
+   - **電子郵件**：`admin@example.com`
+   - **密碼**：`admin1234`
+
 ## 示範帳號
 
-- 電子郵件：`demo@example.com`
-- 密碼：`demo1234`
+- **會員端（前台購物）**：
+  - 電子郵件：`demo@example.com`
+  - 密碼：`demo1234`
+- **管理員端（後台管理）**：
+  - 電子郵件：`admin@example.com`
+  - 密碼：`admin1234`
 
-## 頁面路由
+
+<!-- ## 頁面路由 -->
 
 ### 會員商城
 
