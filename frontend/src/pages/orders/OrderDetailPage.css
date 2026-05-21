@@ -1,0 +1,85 @@
+.order-detail__back {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: var(--color-neutral-600);
+  text-decoration: none;
+}
+
+.order-detail__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.order-detail__date {
+  color: var(--color-neutral-600);
+  margin: 4px 0 0;
+}
+
+.order-detail__badges {
+  display: flex;
+  gap: 8px;
+}
+
+.order-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.order-detail__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.order-detail__card h2 {
+  margin-bottom: 16px;
+}
+
+.order-detail__card p {
+  margin: 0 0 12px;
+  color: var(--color-neutral-600);
+  line-height: 1.6;
+}
+
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.order-table th,
+.order-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.order-table th {
+  font-weight: 500;
+  color: var(--color-neutral-600);
+  background: var(--color-neutral-50);
+}
+
+.order-table tfoot td {
+  font-weight: 700;
+  border-bottom: none;
+}
+
+.order-detail__pay-hint {
+  font-size: 13px;
+  margin-bottom: 16px !important;
+}
+
+@media (max-width: 900px) {
+  .order-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}

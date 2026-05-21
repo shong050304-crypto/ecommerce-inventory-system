@@ -1,0 +1,52 @@
+.report-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.report-bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 100px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.report-bar-track {
+  height: 24px;
+  background: var(--color-neutral-100);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.report-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 4px;
+  min-width: 2px;
+}
+
+.report-bar-value {
+  text-align: right;
+  font-weight: 500;
+}
+
+.order-lookup__form {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  max-width: 400px;
+  margin-bottom: 16px;
+}
+
+.order-lookup__form .field {
+  flex: 1;
+}
+
+.order-lookup__result {
+  margin-top: 20px;
+}
+
+.order-lookup__result h3 {
+  margin-bottom: 12px;
+}
