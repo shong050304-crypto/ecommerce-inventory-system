@@ -4,6 +4,7 @@ frontend/dist/
 
 # Environment
 frontend/.env
+backend/.env
 .env
 .env.local
 
@@ -11,6 +12,12 @@ frontend/.env
 *.log
 .DS_Store
 Thumbs.db
+
+# Python
+backend/venv/
+backend/__pycache__/
+__pycache__/
+*.pyc
 
 # Editor
 .vscode/
