@@ -6,7 +6,7 @@ echo ============================================================
 echo.
 
 rem Navigate to the frontend directory
-cd %~dp0frontend
+cd /d "%~dp0frontend"
 
 echo [i] Starting Vite dev server...
 npm run dev

@@ -7,11 +7,11 @@ echo.
 
 rem 1. Start backend in a new window
 echo [1/3] Starting backend Flask server...
-start "Ecommerce Backend (Port 3000)" cmd /c "%~dp0run_backend.bat"
+start "Ecommerce Backend (Port 3000)" cmd /k ""%~dp0run_backend.bat""
 
 rem 2. Start frontend in a new window
 echo [2/3] Starting frontend Vite server...
-start "Ecommerce Frontend (Port 5173)" cmd /c "%~dp0run_frontend.bat"
+start "Ecommerce Frontend (Port 5173)" cmd /k ""%~dp0run_frontend.bat""
 
 rem 3. Wait for services to initialize, then open the browser
 echo [3/3] Waiting for services to initialize (3 seconds)...

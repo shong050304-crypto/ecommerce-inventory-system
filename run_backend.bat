@@ -6,14 +6,14 @@ echo ============================================================
 echo.
 
 rem Navigate to the backend directory
-cd %~dp0backend
+cd /d "%~dp0backend"
 
 rem Detect and activate virtual environment
 if exist venv\Scripts\activate.bat (
     echo [i] Activating virtual environment...
     call venv\Scripts\activate.bat
 ) else (
-    echo [!] No virtual environment (venv) found, using system python.
+    echo [!] No virtual environment [venv] found, using system python.
 )
 
 echo.

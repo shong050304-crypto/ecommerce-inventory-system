@@ -31,6 +31,9 @@ export default function ProductsPage() {
       sort: sort === 'newest' ? undefined : sort,
     })
       .then(setProducts)
+      .catch((err) => {
+        showToast(`載入商品失敗，請確認後端伺服器 (Flask) 已正常啟動。(${err.message})`, 'error');
+      })
       .finally(() => setLoading(false));
   }, [categoryId, search, sort]);
 

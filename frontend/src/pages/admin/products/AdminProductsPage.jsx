@@ -31,6 +31,9 @@ export default function AdminProductsPage() {
         setProducts(p);
         setCategories(c);
       })
+      .catch((e) => {
+        showToast(`載入商品或分類失敗，請確認後端伺服器 (Flask) 已正常啟動。(${e.message})`, 'error');
+      })
       .finally(() => setLoading(false));
   };
 
