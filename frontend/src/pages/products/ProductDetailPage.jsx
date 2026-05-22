@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchProductById } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { formatPrice } from '../../utils/format';
@@ -10,8 +11,10 @@ import './ProductDetailPage.css';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +45,11 @@ export default function ProductDetailPage() {
   const lowStock = product.stock > 0 && product.stock <= 5;
 
   const handleAdd = () => {
+    if (!isAuthenticated) {
+      showToast('請先登入會員以使用購物車功能！', 'error');
+      navigate('/login');
+      return;
+    }
     addItem(product, quantity);
     showToast(`已將 ${quantity} 件「${product.name}」加入購物車`);
   };

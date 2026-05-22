@@ -114,6 +114,8 @@ CREATE TABLE ORDERS (
     total_amount   DECIMAL(12,2)  NOT NULL DEFAULT 0.00 COMMENT '訂單總金額',
     payment_status VARCHAR(20)    NOT NULL DEFAULT '未付款' COMMENT '付款狀態',
     order_status   VARCHAR(20)    NOT NULL DEFAULT '處理中' COMMENT '訂單狀態',
+    shipping_phone VARCHAR(20)    DEFAULT NULL    COMMENT '送貨電話',
+    shipping_address VARCHAR(255) DEFAULT NULL    COMMENT '送貨地址',
     created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
 
     -- 主鍵約束

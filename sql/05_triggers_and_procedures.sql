@@ -84,6 +84,8 @@ CREATE PROCEDURE sp_create_order(
     IN p_member_id INT,
     IN p_product_id INT,
     IN p_quantity INT,
+    IN p_shipping_phone VARCHAR(20),
+    IN p_shipping_address VARCHAR(255),
     OUT p_order_id INT,
     OUT p_result_message VARCHAR(255)
 )
@@ -120,8 +122,8 @@ BEGIN
         SET v_subtotal = v_price * p_quantity;
 
         -- 建立訂單
-        INSERT INTO ORDERS (member_id, total_amount, payment_status, order_status)
-        VALUES (p_member_id, v_subtotal, '未付款', '處理中');
+        INSERT INTO ORDERS (member_id, total_amount, payment_status, order_status, shipping_phone, shipping_address)
+        VALUES (p_member_id, v_subtotal, '未付款', '處理中', p_shipping_phone, p_shipping_address);
 
         SET p_order_id = LAST_INSERT_ID();
 
@@ -225,7 +227,7 @@ DELIMITER ;
 -- 測試1：建立新訂單（會員9，許文傑，購買綜合堅果 x3）
 SET @new_order_id = 0;
 SET @result_msg = '';
-CALL sp_create_order(9, 12, 3, @new_order_id, @result_msg);
+CALL sp_create_order(9, 12, 3, '0988776655', '高雄市燕巢區深中路 58 號', @new_order_id, @result_msg);
 SELECT @new_order_id AS '新訂單ID', @result_msg AS '執行結果';
 
 -- 測試2：查詢會員1（王小明）的訂單歷史

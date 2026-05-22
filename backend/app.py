@@ -363,9 +363,9 @@ def _create_order():
 
         # 2. 建立訂單
         cursor.execute(
-            """INSERT INTO ORDERS (member_id, total_amount, payment_status, order_status)
-               VALUES (%s, %s, %s, %s)""",
-            (member_id, total_amount, "未付款", "處理中"),
+            """INSERT INTO ORDERS (member_id, total_amount, payment_status, order_status, shipping_phone, shipping_address)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (member_id, total_amount, "未付款", "處理中", shipping_phone, shipping_address),
         )
         order_id = cursor.lastrowid
 
@@ -421,7 +421,7 @@ def _get_member_orders():
 
     orders = _clean_rows(db.query_all(
         """SELECT order_id AS id, member_id, total_amount,
-                  payment_status, order_status, created_at
+                  payment_status, order_status, shipping_phone, shipping_address, created_at
            FROM ORDERS WHERE member_id = %s
            ORDER BY created_at DESC""",
         (member_id,),
@@ -454,7 +454,7 @@ def get_order_detail(order_id):
 
     order = db.query_one(
         """SELECT order_id AS id, member_id, total_amount,
-                  payment_status, order_status, created_at
+                  payment_status, order_status, shipping_phone, shipping_address, created_at
            FROM ORDERS WHERE order_id = %s""",
         (order_id,),
     )
@@ -746,8 +746,8 @@ def admin_create_product():
         cursor = conn.cursor()
         cursor.execute(
             """INSERT INTO PRODUCTS (category_id, name, price, stock_quantity, description, is_active)
-               VALUES (%s, %s, %s, %s, %s, %s)""",
-            (category_id, name, price, stock, description, is_active),
+               VALUES (%s, %s, %s, 0, %s, %s)""",
+            (category_id, name, price, description, is_active),
         )
         new_id = cursor.lastrowid
 
@@ -863,7 +863,7 @@ def admin_get_orders():
     rows = _clean_rows(db.query_all(
         f"""SELECT o.order_id AS id, o.member_id, m.name AS member_name,
                    m.email AS member_email, o.total_amount,
-                   o.payment_status, o.order_status, o.created_at
+                   o.payment_status, o.order_status, o.shipping_phone, o.shipping_address, o.created_at
             FROM ORDERS o
             JOIN MEMBERS m ON o.member_id = m.member_id
             WHERE {' AND '.join(conditions)}
@@ -883,7 +883,7 @@ def admin_get_order_detail(oid):
     order = db.query_one(
         """SELECT o.order_id AS id, o.member_id, m.name AS member_name,
                   m.email AS member_email, o.total_amount,
-                  o.payment_status, o.order_status, o.created_at
+                  o.payment_status, o.order_status, o.shipping_phone, o.shipping_address, o.created_at
            FROM ORDERS o
            JOIN MEMBERS m ON o.member_id = m.member_id
            WHERE o.order_id = %s""",
