@@ -94,14 +94,17 @@ Authorization: Bearer <token>
 | `processing` | 處理中 | 訂單成立預設值 |
 | `shipped` | 已出貨 | 管理者出貨後 |
 | `completed` | 已完成 | 訂單結案 |
+| `cancel_requested` | 申請取消 | 會員申請取消，待管理員審核 |
+| `cancelled` | 已取消 | 管理員核准取消或手動取消，此狀態下庫存會自動退回 |
 
 ### 2.3 庫存異動類型 `change_type`（管理端／紀錄用）
 
-| 值 | 中文 |
-|----|------|
-| `purchase` | 進貨 |
-| `order_deduct` | 訂單扣減 |
-| `cancel_return` | 取消退回 |
+| 值 | 中文 | 說明 |
+|----|------|------|
+| `purchase` | 進貨 | 庫存進貨補貨 |
+| `order_deduct` | 訂單扣減 | 會員下單扣減庫存 |
+| `cancel_return` | 取消退回 | 訂單同意取消後庫存原數退回 |
+| `adjustment` | 庫存調整 | 管理員手動調整庫存量（可增可減） |
 
 ### 2.4 商品上架 `is_active`
 
@@ -151,16 +154,17 @@ Authorization: Bearer <token>
 
 ### 3.4 訂單 `orders`
 
-| API 欄位 | DB 欄位 | 類型 |
-|----------|---------|------|
-| `id` | order_id | INT PK |
-| `member_id` | member_id | INT FK |
-| `total_amount` | total_amount | DECIMAL |
-| `payment_status` | payment_status | ENUM |
-| `order_status` | order_status | ENUM |
-| `shipping_address` | — | VARCHAR | 結帳當下地址（建議獨立欄位或擴充） |
+| API 欄位 | DB 欄位 | 類型 | 說明 |
+|----------|---------|------|------|
+| `id` | order_id | INT PK | |
+| `member_id` | member_id | INT FK | |
+| `total_amount` | total_amount | DECIMAL | |
+| `payment_status` | payment_status | ENUM | |
+| `order_status` | order_status | ENUM | |
+| `shipping_address` | — | VARCHAR | 結帳當下地址 |
 | `shipping_phone` | — | VARCHAR | 結帳當下電話 |
-| `created_at` | created_at | DATETIME |
+| `cancel_reason` | cancel_reason | VARCHAR NULL | 顧客申請取消原因 |
+| `created_at` | created_at | DATETIME | |
 
 > 計畫書未單獨列出送貨欄位，建議在 `orders` 表新增 `shipping_address`、`shipping_phone`，或等同語意之欄位名，並在本文保持一致。
 
@@ -201,6 +205,7 @@ Authorization: Bearer <token>
 | 7 | GET | `/orders` | **是** | `fetchOrdersByMember` | 我的訂單列表 |
 | 8 | GET | `/orders/:id` | **是** | `fetchOrderById` | 訂單詳情 |
 | 9 | POST | `/orders/:id/pay` | **是** | `simulatePayment` | 模擬付款（期末展示） |
+| 10 | POST | `/orders/:id/cancel` | **是** | `requestCancelOrder` | 申請取消訂單（傳入原因） |
 
 ---
 
@@ -571,6 +576,54 @@ Authorization: Bearer <token>
 
 ---
 
+### 5.10 申請取消訂單
+
+```
+POST /orders/:id/cancel
+Authorization: Bearer <token>
+```
+
+**Request Body**
+
+```json
+{
+  "cancel_reason": "買錯商品了，想換顏色"
+}
+```
+
+**業務規則**
+
+- 僅限訂單狀態為 `processing` (處理中) 時可以申請取消。
+- 成功後將狀態更新為 `cancel_requested` (申請取消)，並將原因存入 `cancel_reason`。
+- 回傳更新後包含 `cancel_reason` 的完整訂單物件。
+
+**Response `200`**
+
+```json
+{
+  "id": 15,
+  "member_id": 1,
+  "total_amount": 1097,
+  "payment_status": "unpaid",
+  "order_status": "cancel_requested",
+  "shipping_phone": "0912345678",
+  "shipping_address": "高雄市燕巢區深中路 58 號",
+  "cancel_reason": "買錯商品了，想換顏色",
+  "created_at": "2026-05-17T14:30:00.000Z",
+  "items": [
+    {
+      "product_id": 1,
+      "product_name": "純棉素色 T 恤",
+      "quantity": 2,
+      "unit_price": 399,
+      "subtotal": 798
+    }
+  ]
+}
+```
+
+---
+
 ## 6. 管理端 API 詳細規格
 
 管理端所有 API 建議加上 `/admin` 前綴以與會員端進行路由與權限隔離。請求時均需在 Header 帶上管理端憑證：
@@ -908,7 +961,7 @@ GET /admin/orders
 |------|------|------|
 | `search` | string | 模糊搜尋訂單 ID、會員姓名、會員 Email |
 | `paymentStatus` | string | 篩選付款狀態 (`unpaid` \| `paid` \| `failed`) |
-| `orderStatus` | string | 篩選訂單狀態 (`processing` \| `shipped` \| `completed`) |
+| `orderStatus` | string | 篩選訂單狀態 (`processing` \| `shipped` \| `completed` \| `cancel_requested` \| `cancelled`) |
 
 **Response `200`**
 
@@ -924,6 +977,7 @@ GET /admin/orders
     "order_status": "processing",
     "shipping_phone": "0912345678",
     "shipping_address": "高雄市燕巢區深中路 58 號",
+    "cancel_reason": null,
     "created_at": "2026-05-17T14:30:00.000Z"
   }
 ]
@@ -948,6 +1002,7 @@ GET /admin/orders/:id
   "order_status": "processing",
   "shipping_phone": "0912345678",
   "shipping_address": "高雄市燕巢區深中路 58 號",
+  "cancel_reason": null,
   "created_at": "2026-05-17T14:30:00.000Z",
   "member": {
     "id": 1,
@@ -984,6 +1039,14 @@ PATCH /admin/orders/:id
 ```
 
 * 欄位皆為選填。若僅需變更其中一項狀態，只傳送該欄位即可。
+
+**業務規則**
+- 當管理員將訂單狀態變更為 `'cancelled'` (已取消) 且原狀態不為已取消時：
+  1. 後端會自動開啟 Transaction。
+  2. 讀取該訂單下所有商品及數量。
+  3. 對每一項商品向 `INVENTORY_LOGS` 寫入一筆變動類型為 `'cancel_return'` (取消退回) 且變動數量為正數的紀錄。
+  4. 激發資料庫觸發器，自動加回商品庫存量。
+  5. 若未提供 `payment_status`，系統會自動將付款狀態設為 `failed` (付款失敗)。
 
 **Response `200`**：更新後的訂單詳情物件（同 6.5.2 結構）。
 
@@ -1086,6 +1149,42 @@ POST /admin/inventory/purchase
   "error": {
     "code": "INVALID_QUANTITY",
     "message": "進貨數量必須大於 0"
+  }
+}
+```
+
+---
+
+#### 6.6.4 手動庫存調整
+
+```
+POST /admin/inventory/adjust
+```
+
+**Request Body**
+
+```json
+{
+  "product_id": 1,
+  "quantity": -5
+}
+```
+
+**業務規則**
+
+1. 驗證商品是否存在。
+2. 檢查調整後的庫存量是否大於等於 0。若調整後庫存小於 0，拒絕調整並回傳 `INVALID_QUANTITY` 錯誤。
+3. 寫入 `inventory_logs`（`change_type = 'adjustment'`，`change_quantity = quantity`），此時資料庫觸發器會自動更新 `PRODUCTS.stock_quantity`。
+
+**Response `200`**：回傳調整更新後之商品詳細物件。
+
+**錯誤範例 `400`**
+
+```json
+{
+  "error": {
+    "code": "INVALID_QUANTITY",
+    "message": "調整後庫存不能小於 0 (目前庫存: 3)"
   }
 }
 ```
