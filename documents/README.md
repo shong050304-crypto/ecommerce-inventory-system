@@ -17,6 +17,8 @@
   * `UI設計規格.md`：前端視圖、版面規劃與元件細節。
   * `API契約.md`：所有對外端點的請求體與回應體 JSON 規格。
   * `前端與後端嫁接實作指南.md`：前後端串接的 JWT 傳遞、狀態映射與 CORS 整合說明。
+  * `系統更新日誌_v1.0.0.md`：本系統各版本修復與架構重構的詳細歷史紀錄。
+  * `測試實作計畫書.md`：後端與前端 API 測試、使用者故事整合測試與資料清理設計計畫書。
   * `README.md`：（本檔案）系統使用說明書。
 
 ---
@@ -105,6 +107,19 @@ npm run dev
 ```
 瀏覽器將自動或手動開啟 `http://localhost:5173`。
 
+> [!TIP]
+> **💡 系統功能入口與測試帳號說明**
+> * **會員端（前台購物網）**：
+>   * **瀏覽網址**：`http://localhost:5173`
+>   * **測試帳號**：`xiaoming.wang@email.com`
+>   * **測試密碼**：`password123`
+> * **管理端（後台管理系統）**：
+>   * **瀏覽網址**：`http://localhost:5173/admin`
+>   * **管理員帳號**：`admin@example.com`
+>   * **管理員密碼**：`admin1234`
+> 
+> *註：前台與後台網頁皆屬於同一個 React 前端專案，執行一次前端啟動命令後，即可直接透過以上不同的 URL 路由進行切換。*
+
 ---
 
 ## 🧪 第四步：自動化整合測試與驗證
@@ -125,6 +140,8 @@ npm run dev
 
 ## 📖 開發與串接參考手冊
 
-* **API 設計細節**：請參閱 [API契約.md](file:///c:/NKNU/Sophomore%20second%20semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/API契約.md)。
-* **前端嫁接細節**：請參閱 [前端與後端嫁接實作指南.md](file:///c:/NKNU/Sophomore%20second%20semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/前端與後端嫁接實作指南.md)。裡面詳細說明了如何將 API 契約規格（如 `unpaid` 狀態）映射至資料庫中文狀態（如 `未付款`）。
-* **UI 元件規劃**：請參閱 [UI設計規格.md](file:///c:/NKNU/Sophomore%20second%20semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/UI設計規格.md)。
+* **API 設計細節**：請參閱 [API契約.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/API契約.md)。
+* **前端嫁接細節**：請參閱 [前端與後端嫁接實作指南.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/前端與後端嫁接實作指南.md)。裡面詳細說明了如何將 API 契約規格（如 `unpaid` 狀態）映射至資料庫中文狀態（如 `未付款`）。
+* **UI 元件規劃**：請參閱 [UI設計規格.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/UI設計規格.md)。
+* **系統更新與重構歷史**：請參閱 [系統更新日誌_v1.0.0.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/系統更新日誌_v1.0.0.md)。
+* **系統測試與驗證計畫**：請參閱 [測試實作計畫書.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/測試實作計畫書.md)。
