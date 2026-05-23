@@ -9,6 +9,7 @@ const TYPE_LABELS = {
   purchase: '進貨',
   order_deduct: '訂單扣減',
   cancel_return: '取消退回',
+  adjustment: '庫存調整',
 };
 
 export default function AdminInventoryLogsPage() {

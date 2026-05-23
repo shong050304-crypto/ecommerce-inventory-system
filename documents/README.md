@@ -19,6 +19,7 @@
   * `前端與後端嫁接實作指南.md`：前後端串接的 JWT 傳遞、狀態映射與 CORS 整合說明。
   * `系統更新日誌_v1.0.0.md`：本系統各版本修復與架構重構的詳細歷史紀錄。
   * `測試實作計畫書.md`：後端與前端 API 測試、使用者故事整合測試與資料清理設計計畫書。
+  * `使用者故事與手動測試指南.md`：前台與後台的現場手動測試操作腳本與資料庫關聯原理。
   * `README.md`：（本檔案）系統使用說明書。
 
 ---
@@ -145,3 +146,4 @@ npm run dev
 * **UI 元件規劃**：請參閱 [UI設計規格.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/UI設計規格.md)。
 * **系統更新與重構歷史**：請參閱 [系統更新日誌_v1.0.0.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/系統更新日誌_v1.0.0.md)。
 * **系統測試與驗證計畫**：請參閱 [測試實作計畫書.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/測試實作計畫書.md)。
+* **手動測試與演示指引**：請參閱 [使用者故事與手動測試指南.md](file:///c:/NKNU/Sophomore second semester/Database/Assignment/期末資料庫設計專題報告/電商訂單與庫存管理系統/documents/使用者故事與手動測試指南.md)。

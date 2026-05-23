@@ -236,7 +236,7 @@ CREATE TABLE INVENTORY_LOGS (
 
     -- CHECK 約束：變動類型必須為指定值（依計劃書定義）
     CONSTRAINT chk_inventory_logs_type
-        CHECK (change_type IN ('進貨', '訂單扣減', '取消退回'))
+        CHECK (change_type IN ('進貨', '訂單扣減', '取消退回', '庫存調整'))
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci

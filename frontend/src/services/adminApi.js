@@ -210,6 +210,17 @@ export async function adminPurchaseStock(productId, quantity) {
   });
 }
 
+export async function adminAdjustStock(productId, quantity) {
+  return request('/admin/inventory/adjust', {
+    method: 'POST',
+    headers: getAdminAuthHeader(),
+    body: JSON.stringify({
+      product_id: productId,
+      quantity: quantity,
+    }),
+  });
+}
+
 // ——— 報表 ———
 export async function adminFetchSalesByCategory() {
   return request('/admin/reports/sales-by-category', {

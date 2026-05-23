@@ -72,3 +72,60 @@ def test_admin_api_permission_control(client):
     
     response = client.get("/api/admin/dashboard/stats", headers=headers)
     assert response.status_code == 401
+
+
+def test_inventory_adjustment(client):
+    """測試管理端庫存調整 API。"""
+    import db
+    
+    # 1. 取得一個現有的商品 ID
+    product = db.query_one("SELECT product_id, stock_quantity FROM PRODUCTS LIMIT 1")
+    assert product is not None, "資料庫中必須至少有一個商品"
+    pid = product["product_id"]
+    initial_stock = product["stock_quantity"]
+
+    # 2. 建立 admin 驗證 Header
+    admin_token = app._create_token({"id": 1, "role": "admin"})
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # 3. 測試庫存調增 (例如增加 5 件)
+    adjust_up_resp = client.post("/api/admin/inventory/adjust", json={
+        "product_id": pid,
+        "quantity": 5
+    }, headers=headers)
+    assert adjust_up_resp.status_code == 200
+    res_up = json.loads(adjust_up_resp.data)
+    assert res_up["stock"] == initial_stock + 5
+
+    # 4. 測試庫存調減 (例如減少 3 件)
+    adjust_down_resp = client.post("/api/admin/inventory/adjust", json={
+        "product_id": pid,
+        "quantity": -3
+    }, headers=headers)
+    assert adjust_down_resp.status_code == 200
+    res_down = json.loads(adjust_down_resp.data)
+    assert res_down["stock"] == initial_stock + 2
+
+    # 5. 測試庫存調減至負數 (應報錯並且庫存不變)
+    huge_decrease = -(initial_stock + 2 + 100)
+    adjust_fail_resp = client.post("/api/admin/inventory/adjust", json={
+        "product_id": pid,
+        "quantity": huge_decrease
+    }, headers=headers)
+    assert adjust_fail_resp.status_code == 400
+    res_fail = json.loads(adjust_fail_resp.data)
+    assert res_fail["error"]["code"] == "INVALID_QUANTITY"
+
+    # 6. 驗證最終庫存依然為 initial_stock + 2
+    final_prod = db.query_one("SELECT stock_quantity FROM PRODUCTS WHERE product_id = %s", (pid,))
+    assert final_prod["stock_quantity"] == initial_stock + 2
+
+    # 7. 驗證庫存日誌中是否有記錄
+    log = db.query_one(
+        "SELECT change_quantity, change_type FROM INVENTORY_LOGS WHERE product_id = %s ORDER BY log_id DESC LIMIT 1",
+        (pid,)
+    )
+    # 最後一筆應該是我們調減 3 件的紀錄
+    assert log["change_quantity"] == -3
+    assert log["change_type"] == "庫存調整"
+

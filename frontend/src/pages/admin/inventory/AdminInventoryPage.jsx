@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { adminFetchInventory, adminPurchaseStock } from '../../../services/adminApi';
+import { adminFetchInventory, adminPurchaseStock, adminAdjustStock } from '../../../services/adminApi';
 import { formatDate } from '../../../utils/format';
 import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
@@ -15,6 +15,8 @@ export default function AdminInventoryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [quantity, setQuantity] = useState('');
+  const [modalType, setModalType] = useState('purchase'); // 'purchase' or 'adjust'
+  const [adjustType, setAdjustType] = useState('increase'); // 'increase' or 'decrease'
   const [submitting, setSubmitting] = useState(false);
 
   const load = () => {
@@ -29,19 +31,34 @@ export default function AdminInventoryPage() {
   const openPurchase = (product) => {
     setSelected(product);
     setQuantity('');
+    setModalType('purchase');
     setModalOpen(true);
   };
 
-  const handlePurchase = async () => {
-    const qty = Number(quantity);
-    if (!qty || qty <= 0) {
-      showToast('請輸入有效進貨數量', 'error');
+  const openAdjust = (product) => {
+    setSelected(product);
+    setQuantity('');
+    setModalType('adjust');
+    setAdjustType('increase');
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    const qtyInput = Number(quantity);
+    if (!qtyInput || qtyInput <= 0) {
+      showToast('請輸入有效數量', 'error');
       return;
     }
     setSubmitting(true);
     try {
-      await adminPurchaseStock(selected.id, qty);
-      showToast(`已為「${selected.name}」進貨 ${qty} 件`);
+      if (modalType === 'purchase') {
+        await adminPurchaseStock(selected.id, qtyInput);
+        showToast(`已為「${selected.name}」進貨 ${qtyInput} 件`);
+      } else {
+        const qtyAdjust = adjustType === 'increase' ? qtyInput : -qtyInput;
+        await adminAdjustStock(selected.id, qtyAdjust);
+        showToast(`已為「${selected.name}」進行庫存調整：${qtyAdjust > 0 ? '+' : ''}${qtyAdjust} 件`);
+      }
       setModalOpen(false);
       load();
     } catch (e) {
@@ -56,7 +73,7 @@ export default function AdminInventoryPage() {
       <header className="admin-page-header">
         <div>
           <h1>庫存總覽</h1>
-          <p>查看庫存並執行進貨</p>
+          <p>查看庫存並執行進貨與調整</p>
         </div>
         <Link to="/admin/inventory/logs" className="admin-table__link">
           查看異動紀錄 →
@@ -95,8 +112,16 @@ export default function AdminInventoryPage() {
                       type="button"
                       className="admin-table__link"
                       onClick={() => openPurchase(p)}
+                      style={{ marginRight: 12 }}
                     >
                       進貨
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-table__link"
+                      onClick={() => openAdjust(p)}
+                    >
+                      調整
                     </button>
                   </td>
                 </tr>
@@ -108,15 +133,15 @@ export default function AdminInventoryPage() {
 
       <Modal
         open={modalOpen}
-        title="商品進貨"
+        title={modalType === 'purchase' ? "商品進貨" : "庫存調整"}
         onClose={() => setModalOpen(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               取消
             </Button>
-            <Button onClick={handlePurchase} disabled={submitting}>
-              {submitting ? '處理中…' : '確認進貨'}
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? '處理中…' : '確認'}
             </Button>
           </>
         }
@@ -128,8 +153,34 @@ export default function AdminInventoryPage() {
               <br />
               <strong>目前庫存</strong> {selected.stock} 件
             </p>
+            {modalType === 'adjust' && (
+              <div style={{ display: 'flex', gap: 24, padding: '4px 0' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="adjustType"
+                    value="increase"
+                    checked={adjustType === 'increase'}
+                    onChange={() => setAdjustType('increase')}
+                    style={{ marginRight: 6 }}
+                  />
+                  調整增加 (+)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="adjustType"
+                    value="decrease"
+                    checked={adjustType === 'decrease'}
+                    onChange={() => setAdjustType('decrease')}
+                    style={{ marginRight: 6 }}
+                  />
+                  調整減少 (-)
+                </label>
+              </div>
+            )}
             <Input
-              label="進貨數量"
+              label={modalType === 'purchase' ? "進貨數量" : "調整數量"}
               type="number"
               min="1"
               value={quantity}

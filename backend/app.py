@@ -49,7 +49,7 @@ PAYMENT_STATUS_REVERSE = {v: k for k, v in PAYMENT_STATUS_MAP.items()}
 ORDER_STATUS_MAP = {"processing": "處理中", "shipped": "已出貨", "completed": "已完成"}
 ORDER_STATUS_REVERSE = {v: k for k, v in ORDER_STATUS_MAP.items()}
 
-CHANGE_TYPE_MAP = {"purchase": "進貨", "order_deduct": "訂單扣減", "cancel_return": "取消退回"}
+CHANGE_TYPE_MAP = {"purchase": "進貨", "order_deduct": "訂單扣減", "cancel_return": "取消退回", "adjustment": "庫存調整"}
 CHANGE_TYPE_REVERSE = {v: k for k, v in CHANGE_TYPE_MAP.items()}
 
 
@@ -727,15 +727,31 @@ def admin_create_product():
     data = request.get_json(silent=True) or {}
     category_id = data.get("category_id")
     name = (data.get("name") or "").strip()
-    price = data.get("price", 0)
-    stock = data.get("stock", 0)
     description = (data.get("description") or "").strip()
     is_active = data.get("is_active", True)
 
-    if not name or not category_id:
+    if not name or category_id is None:
         return _error("VALIDATION_ERROR", "商品名稱與分類為必填")
+
+    try:
+        category_id = int(category_id)
+    except (ValueError, TypeError):
+        return _error("VALIDATION_ERROR", "分類格式不正確")
+
+    try:
+        price = float(data.get("price") or 0)
+    except (ValueError, TypeError):
+        return _error("VALIDATION_ERROR", "售價格式不正確，必須為數值")
+
+    try:
+        stock = int(data.get("stock") or 0)
+    except (ValueError, TypeError):
+        return _error("VALIDATION_ERROR", "初始庫存格式不正確，必須為整數")
+
     if price <= 0:
         return _error("VALIDATION_ERROR", "售價必須大於 0")
+    if stock < 0:
+        return _error("VALIDATION_ERROR", "初始庫存不能小於 0")
 
     cat = db.query_one("SELECT category_id FROM CATEGORIES WHERE category_id = %s", (category_id,))
     if not cat:
@@ -777,12 +793,24 @@ def admin_update_product(pid):
     data = request.get_json(silent=True) or {}
     category_id = data.get("category_id")
     name = (data.get("name") or "").strip()
-    price = data.get("price", 0)
     description = (data.get("description") or "").strip()
     is_active = data.get("is_active", True)
 
-    if not name or not category_id:
+    if not name or category_id is None:
         return _error("VALIDATION_ERROR", "商品名稱與分類為必填")
+
+    try:
+        category_id = int(category_id)
+    except (ValueError, TypeError):
+        return _error("VALIDATION_ERROR", "分類格式不正確")
+
+    try:
+        price = float(data.get("price") or 0)
+    except (ValueError, TypeError):
+        return _error("VALIDATION_ERROR", "售價格式不正確，必須為數值")
+
+    if price <= 0:
+        return _error("VALIDATION_ERROR", "售價必須大於 0")
 
     existing = db.query_one("SELECT product_id FROM PRODUCTS WHERE product_id = %s", (pid,))
     if not existing:
@@ -1026,6 +1054,51 @@ def admin_purchase_stock():
     # 回傳更新後的商品
     rows = _product_query("p.product_id = %s", (product_id,))
     return jsonify(rows[0])
+
+
+@app.route("/api/admin/inventory/adjust", methods=["POST"])
+@require_admin
+def admin_adjust_stock():
+    data = request.get_json(silent=True) or {}
+    product_id = data.get("product_id")
+    quantity = data.get("quantity")
+
+    if not product_id:
+        return _error("INVALID_PRODUCT", "商品 ID 為必填欄位")
+
+    try:
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        return _error("INVALID_QUANTITY", "變動數量必須為整數且不能為空")
+
+    if quantity == 0:
+        return _error("INVALID_QUANTITY", "變動數量不能為 0")
+
+    product = db.query_one(
+        "SELECT product_id, name, stock_quantity FROM PRODUCTS WHERE product_id = %s", (product_id,)
+    )
+    if not product:
+        return _error("NOT_FOUND", "商品不存在", 404)
+
+    # 檢查調整後庫存是否為負數
+    new_stock = product["stock_quantity"] + quantity
+    if new_stock < 0:
+        return _error("INVALID_QUANTITY", f"調整後庫存不能小於 0 (目前庫存: {product['stock_quantity']})")
+
+    # 寫入異動日誌，資料庫觸發器會自動更新庫存
+    try:
+        db.execute(
+            """INSERT INTO INVENTORY_LOGS (product_id, change_quantity, change_type)
+               VALUES (%s, %s, '庫存調整')""",
+            (product_id, quantity)
+        )
+    except Exception as e:
+        return _error("ADJUST_FAILED", f"調整失敗: {str(e)}", 400)
+
+    # 回傳更新後的商品
+    rows = _product_query("p.product_id = %s", (product_id,))
+    return jsonify(rows[0])
+
 
 
 # -------------------------------------------------------------------
