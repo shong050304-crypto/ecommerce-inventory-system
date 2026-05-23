@@ -83,7 +83,15 @@ export default function AdminOrdersPage() {
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id}>
-                  <td>{formatOrderId(o.id)}</td>
+                  <td className={o.order_status === 'cancel_requested' ? 'cancel-alert-container' : ''}>
+                    {o.order_status === 'cancel_requested' && (
+                      <span 
+                        className="cancel-alert-dot" 
+                        title="顧客申請取消中，待審核" 
+                      />
+                    )}
+                    {formatOrderId(o.id)}
+                  </td>
                   <td>
                     {o.member_name}
                     <br />

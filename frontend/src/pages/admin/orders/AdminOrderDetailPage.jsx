@@ -47,6 +47,43 @@ export default function AdminOrderDetailPage() {
     }
   };
 
+  const handleApproveCancel = async () => {
+    if (!window.confirm('確定要「同意」取消此訂單嗎？同意後將自動退回商品庫存！')) return;
+    setSaving(true);
+    try {
+      const updated = await adminUpdateOrderStatus(id, {
+        order_status: 'cancelled',
+        payment_status: 'failed',
+      });
+      setOrder(updated);
+      setPaymentStatus(updated.payment_status);
+      setOrderStatus(updated.order_status);
+      showToast('已同意取消訂單，庫存已自動退回');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRejectCancel = async () => {
+    if (!window.confirm('確定要「拒絕」取消此訂單嗎？拒絕後訂單將恢復為處理中。')) return;
+    setSaving(true);
+    try {
+      const updated = await adminUpdateOrderStatus(id, {
+        order_status: 'processing',
+      });
+      setOrder(updated);
+      setPaymentStatus(updated.payment_status);
+      setOrderStatus(updated.order_status);
+      showToast('已拒絕取消申請，訂單已恢復處理中');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <p className="page-loading">載入中…</p>;
   if (!order) return <p>找不到訂單</p>;
 
@@ -123,6 +160,32 @@ export default function AdminOrderDetailPage() {
         <section className="admin-card admin-order-panel">
           <div className="admin-card__header">狀態操作</div>
           <div className="admin-status-form">
+            {order.order_status === 'cancel_requested' && (
+              <div style={{
+                background: 'var(--color-warning-light)',
+                borderLeft: '4px solid var(--color-warning)',
+                padding: 16,
+                borderRadius: 4,
+                marginBottom: 16,
+                fontSize: '0.875rem'
+              }}>
+                <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: 'var(--color-warning)' }}>
+                  ⚠️ 顧客已申請取消本筆訂單
+                </p>
+                <p style={{ margin: '0 0 16px 0', color: 'var(--color-neutral-700)' }}>
+                  <strong>申請取消原因：</strong>{order.cancel_reason || '無'}
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button fullWidth variant="success" onClick={handleApproveCancel} disabled={saving}>
+                    同意取消
+                  </Button>
+                  <Button fullWidth variant="danger-solid" onClick={handleRejectCancel} disabled={saving}>
+                    拒絕取消
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="field">
               <label className="field__label">付款狀態</label>
               <select

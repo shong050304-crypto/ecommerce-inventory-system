@@ -8,4 +8,6 @@ export const ORDER_STATUS = {
   processing: { label: '處理中', variant: 'warning' },
   shipped: { label: '已出貨', variant: 'primary' },
   completed: { label: '已完成', variant: 'success' },
+  cancel_requested: { label: '申請取消', variant: 'danger' },
+  cancelled: { label: '已取消', variant: 'neutral' },
 };

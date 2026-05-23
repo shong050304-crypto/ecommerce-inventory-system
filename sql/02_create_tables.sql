@@ -116,6 +116,7 @@ CREATE TABLE ORDERS (
     order_status   VARCHAR(20)    NOT NULL DEFAULT '處理中' COMMENT '訂單狀態',
     shipping_phone VARCHAR(20)    DEFAULT NULL    COMMENT '送貨電話',
     shipping_address VARCHAR(255) DEFAULT NULL    COMMENT '送貨地址',
+    cancel_reason    VARCHAR(255) DEFAULT NULL    COMMENT '取消原因',
     created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
 
     -- 主鍵約束
@@ -136,7 +137,7 @@ CREATE TABLE ORDERS (
 
     -- CHECK 約束：訂單狀態必須為指定值（依計劃書定義）
     CONSTRAINT chk_orders_order_status
-        CHECK (order_status IN ('處理中', '已出貨', '已完成'))
+        CHECK (order_status IN ('處理中', '已出貨', '已完成', '申請取消', '已取消'))
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci

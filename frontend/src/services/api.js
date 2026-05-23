@@ -155,3 +155,20 @@ export async function simulatePayment(orderId, memberId) {
   };
 }
 
+export async function requestCancelOrder(orderId, memberId, cancelReason) {
+  const res = await request(`/orders/${orderId}/cancel`, {
+    method: 'POST',
+    headers: getAuthHeader(),
+    body: JSON.stringify({
+      cancel_reason: cancelReason,
+    }),
+  });
+  return {
+    ...res,
+    items: res.items?.map((i) => ({
+      ...i,
+      productId: i.product_id,
+    })),
+  };
+}
+

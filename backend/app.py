@@ -46,7 +46,7 @@ ADMIN_ACCOUNTS = {
 PAYMENT_STATUS_MAP = {"unpaid": "未付款", "paid": "已付款", "failed": "失敗"}
 PAYMENT_STATUS_REVERSE = {v: k for k, v in PAYMENT_STATUS_MAP.items()}
 
-ORDER_STATUS_MAP = {"processing": "處理中", "shipped": "已出貨", "completed": "已完成"}
+ORDER_STATUS_MAP = {"processing": "處理中", "shipped": "已出貨", "completed": "已完成", "cancel_requested": "申請取消", "cancelled": "已取消"}
 ORDER_STATUS_REVERSE = {v: k for k, v in ORDER_STATUS_MAP.items()}
 
 CHANGE_TYPE_MAP = {"purchase": "進貨", "order_deduct": "訂單扣減", "cancel_return": "取消退回", "adjustment": "庫存調整"}
@@ -454,7 +454,7 @@ def get_order_detail(order_id):
 
     order = db.query_one(
         """SELECT order_id AS id, member_id, total_amount,
-                  payment_status, order_status, shipping_phone, shipping_address, created_at
+                  payment_status, order_status, shipping_phone, shipping_address, cancel_reason, created_at
            FROM ORDERS WHERE order_id = %s""",
         (order_id,),
     )
@@ -505,6 +505,36 @@ def simulate_payment(order_id):
 
     # 回傳更新後的訂單
     return get_order_detail(order_id)
+
+
+@app.route("/api/orders/<int:order_id>/cancel", methods=["POST"])
+@require_member
+def request_cancel_order(order_id):
+    member_id = request.member_id
+    data = request.get_json(silent=True) or {}
+    cancel_reason = (data.get("cancel_reason") or "").strip()
+
+    order = db.query_one(
+        "SELECT order_id, member_id, order_status FROM ORDERS WHERE order_id = %s",
+        (order_id,),
+    )
+    if not order:
+        return _error("NOT_FOUND", "找不到訂單", 404)
+    if order["member_id"] != member_id:
+        return _error("FORBIDDEN", "無權限操作此訂單", 403)
+
+    # 顧客只能對「處理中」的訂單申請取消
+    if order["order_status"] != "處理中":
+        return _error("INVALID_STATUS", f"目前狀態為「{order['order_status']}」，無法申請取消", 400)
+
+    db.execute(
+        "UPDATE ORDERS SET order_status = %s, cancel_reason = %s WHERE order_id = %s",
+        ("申請取消", cancel_reason or None, order_id),
+    )
+
+    # 回傳更新後的訂單
+    return get_order_detail(order_id)
+
 
 
 # ===================================================================
@@ -911,7 +941,7 @@ def admin_get_order_detail(oid):
     order = db.query_one(
         """SELECT o.order_id AS id, o.member_id, m.name AS member_name,
                   m.email AS member_email, o.total_amount,
-                  o.payment_status, o.order_status, o.shipping_phone, o.shipping_address, o.created_at
+                  o.payment_status, o.order_status, o.shipping_phone, o.shipping_address, o.cancel_reason, o.created_at
            FROM ORDERS o
            JOIN MEMBERS m ON o.member_id = m.member_id
            WHERE o.order_id = %s""",
@@ -953,24 +983,67 @@ def admin_update_order_status(oid):
     payment = data.get("payment_status")
     status = data.get("order_status")
 
-    order = db.query_one("SELECT order_id FROM ORDERS WHERE order_id = %s", (oid,))
+    order = db.query_one("SELECT order_id, order_status FROM ORDERS WHERE order_id = %s", (oid,))
     if not order:
         return _error("NOT_FOUND", "找不到訂單", 404)
+    current_order_status = order["order_status"]
 
     updates = []
     params = []
     if payment and payment in PAYMENT_STATUS_MAP:
         updates.append("payment_status = %s")
         params.append(PAYMENT_STATUS_MAP[payment])
-    if status and status in ORDER_STATUS_MAP:
-        updates.append("order_status = %s")
-        params.append(ORDER_STATUS_MAP[status])
 
-    if not updates:
-        return _error("VALIDATION_ERROR", "請提供要更新的狀態欄位")
+    # 檢查是否要改為「已取消」且原本不是「已取消」
+    is_cancelling = (status and status in ORDER_STATUS_MAP and ORDER_STATUS_MAP[status] == "已取消" and current_order_status != "已取消")
 
-    params.append(oid)
-    db.execute(f"UPDATE ORDERS SET {', '.join(updates)} WHERE order_id = %s", tuple(params))
+    if is_cancelling:
+        # 1. 查詢所有明細，準備將庫存退回
+        items = db.query_all("SELECT product_id, quantity FROM ORDER_DETAILS WHERE order_id = %s", (oid,))
+        conn = db.get_connection()
+        try:
+            cursor = conn.cursor()
+            # 退回庫存：對每個明細寫入一筆 '取消退回' 日誌，激發觸發器
+            for item in items:
+                cursor.execute(
+                    """INSERT INTO INVENTORY_LOGS (product_id, change_quantity, change_type)
+                       VALUES (%s, %s, %s)""",
+                    (item["product_id"], item["quantity"], "取消退回")
+                )
+            # 在同一事務中更新訂單狀態為「已取消」與付款狀態
+            updates_sql = ["order_status = %s"]
+            params_sql = ["已取消"]
+            if payment and payment in PAYMENT_STATUS_MAP:
+                updates_sql.append("payment_status = %s")
+                params_sql.append(PAYMENT_STATUS_MAP[payment])
+            else:
+                # 訂單取消時，若未指定付款狀態，自動把付款狀態設為「失敗」
+                updates_sql.append("payment_status = %s")
+                params_sql.append("失敗")
+
+            params_sql.append(oid)
+            cursor.execute(
+                f"UPDATE ORDERS SET {', '.join(updates_sql)} WHERE order_id = %s",
+                tuple(params_sql)
+            )
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            conn.rollback()
+            return _error("CANCEL_FAILED", f"同意取消訂單與退回庫存失敗: {str(e)}", 400)
+        finally:
+            conn.close()
+    else:
+        # 一般的狀態更新
+        if status and status in ORDER_STATUS_MAP:
+            updates.append("order_status = %s")
+            params.append(ORDER_STATUS_MAP[status])
+
+        if not updates:
+            return _error("VALIDATION_ERROR", "請提供要更新的狀態欄位")
+
+        params.append(oid)
+        db.execute(f"UPDATE ORDERS SET {', '.join(updates)} WHERE order_id = %s", tuple(params))
 
     return admin_get_order_detail(oid)
 

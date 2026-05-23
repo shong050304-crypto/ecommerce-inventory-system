@@ -70,3 +70,21 @@
 .btn--ghost:hover:not(:disabled) {
   background: var(--color-primary-light);
 }
+
+.btn--success {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.btn--success:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.btn--danger-solid {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.btn--danger-solid:hover:not(:disabled) {
+  background: #b91c1c;
+}

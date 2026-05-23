@@ -129,3 +129,88 @@ def test_inventory_adjustment(client):
     assert log["change_quantity"] == -3
     assert log["change_type"] == "庫存調整"
 
+
+def test_order_cancellation_flow(client):
+    """測試顧客申請取消訂單與管理員審核同意（退回庫存）流程。"""
+    import db
+    
+    # 1. 取得一個現有商品並檢查初始庫存
+    product = db.query_one("SELECT product_id, stock_quantity FROM PRODUCTS LIMIT 1")
+    assert product is not None
+    pid = product["product_id"]
+    initial_stock = product["stock_quantity"]
+    
+    # 2. 建立一個新會員並為其登入 Token
+    import time
+    timestamp = int(time.time())
+    test_email = f"cancel_test_{timestamp}@example.com"
+    test_phone = f"phone_{timestamp}"
+    reg_resp = client.post("/api/auth/register", json={
+        "name": "取消測試員",
+        "email": test_email,
+        "password": "testpassword123",
+        "phone": test_phone,
+        "address": "高雄市深中路"
+    })
+    assert reg_resp.status_code == 201
+    member_token = json.loads(reg_resp.data)["token"]
+    member_headers = {"Authorization": f"Bearer {member_token}"}
+    
+    # 3. 會員下單購買 3 件（扣減庫存）
+    order_resp = client.post("/api/orders", json={
+        "items": [{"product_id": pid, "quantity": 3}],
+        "shipping_phone": "0912345678",
+        "shipping_address": "取消測試地址"
+    }, headers=member_headers)
+    assert order_resp.status_code == 201
+    order_id = json.loads(order_resp.data)["id"]
+    
+    # 驗證庫存已減少 3
+    prod_after_order = db.query_one("SELECT stock_quantity FROM PRODUCTS WHERE product_id = %s", (pid,))
+    assert prod_after_order["stock_quantity"] == initial_stock - 3
+    
+    # 4. 會員申請取消訂單（傳入取消原因）
+    cancel_req_resp = client.post(f"/api/orders/{order_id}/cancel", json={
+        "cancel_reason": "買錯商品了，想換顏色"
+    }, headers=member_headers)
+    assert cancel_req_resp.status_code == 200
+    res_cancel_req = json.loads(cancel_req_resp.data)
+    assert res_cancel_req["order_status"] == "cancel_requested"  # 狀態變為 申請取消
+    assert res_cancel_req["cancel_reason"] == "買錯商品了，想換顏色"  # 驗證取消原因正確
+    
+    # 5. 阻擋會員在非處理中狀態（已是申請取消）再次發送取消
+    cancel_fail_resp = client.post(f"/api/orders/{order_id}/cancel", json={
+        "cancel_reason": "重複下單"
+    }, headers=member_headers)
+    assert cancel_fail_resp.status_code == 400
+    
+    # 5.5 管理員查看訂單詳情，驗證取消原因是否存在
+    admin_token = app._create_token({"id": 1, "role": "admin"})
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+    
+    admin_detail_resp = client.get(f"/api/admin/orders/{order_id}", headers=admin_headers)
+    assert admin_detail_resp.status_code == 200
+    res_admin_detail = json.loads(admin_detail_resp.data)
+    assert res_admin_detail["cancel_reason"] == "買錯商品了，想換顏色"
+    
+    # 6. 管理員審核並同意取消訂單
+    approve_resp = client.patch(f"/api/admin/orders/{order_id}", json={
+        "order_status": "cancelled"
+    }, headers=admin_headers)
+    assert approve_resp.status_code == 200
+    res_approve = json.loads(approve_resp.data)
+    assert res_approve["order_status"] == "cancelled"  # 狀態變為 已取消
+    
+    # 7. 驗證庫存已被自動退回
+    prod_final = db.query_one("SELECT stock_quantity FROM PRODUCTS WHERE product_id = %s", (pid,))
+    assert prod_final["stock_quantity"] == initial_stock  # 庫存還原為原本的數量
+    
+    # 8. 驗證庫存日誌有 '取消退回' 的記錄
+    log = db.query_one(
+        "SELECT change_quantity, change_type FROM INVENTORY_LOGS WHERE product_id = %s ORDER BY log_id DESC LIMIT 1",
+        (pid,)
+    )
+    assert log["change_quantity"] == 3
+    assert log["change_type"] == "取消退回"
+
+
