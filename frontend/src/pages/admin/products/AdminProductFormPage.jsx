@@ -123,7 +123,8 @@ export default function AdminProductFormPage() {
             min="0"
             value={form.stock}
             onChange={update('stock')}
-            hint={isEdit ? '建議透過「庫存管理」進貨調整' : ''}
+            hint={isEdit ? '唯讀欄位，變動庫存請至「庫存管理」進行進貨或調整' : ''}
+            disabled={isEdit}
             required
           />
         </div>
